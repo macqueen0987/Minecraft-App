@@ -1,0 +1,80 @@
+services:
+    mc:
+        container_name: minecraft-server
+        image: itzg/minecraft-server
+        tty: true
+        stdin_open: true
+        ports:
+            - "25565:25565"
+            - "24454:24454/udp" # voice chat mod port
+        expose:
+            - "25566" # Query port
+            - "25575" # RCON port
+        environment:
+            EULA: "TRUE"
+            VERSION: "1.20.1"
+            DIFFICULTY: "normal"
+            OPS: |
+                macqueen1526
+            TYPE: FORGE
+            MOTD: "Minecraft Server"
+            ENABLE_QUERY: true
+            PVP: false
+            QUERY_PORT: 25566
+            MAX_PLAYERS: 20
+            MEMORY: "8G"
+        volumes:
+            # attach the relative directory 'data' to the container's /data path
+            - ./data:/data
+            - ./mods:/mods
+        restart: unless-stopped
+        networks:
+            - mc-network
+
+    bot:
+        container_name: minecraft-bot
+        build:
+            context: bot
+            dockerfile: Dockerfile
+        expose:
+            - "3900"
+        restart: unless-stopped
+        volumes:
+            - ./data:/app/data
+            - ./bot:/app
+            - ./mods:/app/mods
+        working_dir: /app
+        networks:
+            - nginx-proxy
+            - mc-network
+        command:
+            - python
+            - main.py
+        env_file:
+            - var.env
+        environment:
+            - PYTHONPATH=/app
+
+    web:
+        container_name: minecraft-web
+        build:
+            context: spring
+            dockerfile: Dockerfile
+#        ports: # Expose web server port, 그런데 저는 nginx를 사용해서 프록시를 설정할 예정입니다.
+#            - "80:80" # HTTP port
+        expose:
+            - "8080" # Web server port
+        restart: unless-stopped
+        networks:
+            - nginx-proxy
+            - mc-network
+        volumes:
+            - ./spring:/app
+            - ./data:/app/data
+            - ./mods:/app/mods
+
+networks:
+    mc-network:
+        external: true
+    nginx-proxy:
+        external: true
