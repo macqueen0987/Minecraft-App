@@ -57,9 +57,7 @@ services:
 
     web:
         container_name: minecraft-web
-        build:
-            context: spring
-            dockerfile: Dockerfile
+        image: amazoncorretto:17-alpine
 #        ports: # Expose web server port, 그런데 저는 nginx를 사용해서 프록시를 설정할 예정입니다.
 #            - "80:80" # HTTP port
         expose:
@@ -68,10 +66,15 @@ services:
         networks:
             - nginx-proxy
             - mc-network
+        working_dir: /app
         volumes:
-            - ./spring:/app
+            - ./spring/libs/:/app
             - ./data:/app/data
             - ./mods:/app/mods
+        command:
+            - java
+            - -jar
+            - /app/minecraft-web.jar
 
 networks:
     mc-network:
